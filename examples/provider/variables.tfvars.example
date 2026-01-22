@@ -1,0 +1,29 @@
+# Example terraform.tfvars file
+# Copy this to terraform.tfvars and fill in your values
+
+# Authentication - use either API token or OAuth credentials
+# snyk_token = "your-snyk-api-token"
+
+# OAuth authentication (recommended for automation)
+snyk_client_id     = "your-oauth-client-id"
+snyk_client_secret = "your-oauth-client-secret"
+
+# Region (us, eu, or au)
+snyk_region = "us"
+
+# Organization and tenant IDs
+snyk_org_id    = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+snyk_tenant_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Snyk Broker App ID (region-specific)
+# US: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# EU: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# AU: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+snyk_broker_app_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# GitHub integration ID
+github_integration_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Organizations to migrate (optional)
+orgs_to_migrate = []
+
