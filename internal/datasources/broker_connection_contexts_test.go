@@ -4,7 +4,6 @@ package datasources
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -16,9 +15,9 @@ import (
 	"github.com/snyk-labs/snyk-broker-provider/internal/testutil"
 )
 
-var _ = Describe("BrokerConnectionsForOrgDataSource", func() {
+var _ = Describe("BrokerConnectionContextsDataSource", func() {
 	var (
-		d        *BrokerConnectionsForOrgDataSource
+		d        *BrokerConnectionContextsDataSource
 		mockHTTP *testutil.MockHTTPClient
 		ctx      context.Context
 	)
@@ -29,7 +28,7 @@ var _ = Describe("BrokerConnectionsForOrgDataSource", func() {
 		mockAuth := &testutil.MockAuthenticator{}
 		c := client.NewClient("https://api.snyk.io", mockAuth, client.WithHTTPClient(mockHTTP))
 
-		d = &BrokerConnectionsForOrgDataSource{
+		d = &BrokerConnectionContextsDataSource{
 			client: c,
 		}
 	})
@@ -43,7 +42,7 @@ var _ = Describe("BrokerConnectionsForOrgDataSource", func() {
 
 			d.Metadata(ctx, req, resp)
 
-			Expect(resp.TypeName).To(Equal("snyk_broker_connections_for_org"))
+			Expect(resp.TypeName).To(Equal("snyk_broker_connection_contexts"))
 		})
 	})
 
@@ -55,8 +54,10 @@ var _ = Describe("BrokerConnectionsForOrgDataSource", func() {
 			d.Schema(ctx, req, resp)
 
 			Expect(resp.Schema.Attributes).To(HaveKey("id"))
-			Expect(resp.Schema.Attributes).To(HaveKey("org_id"))
-			Expect(resp.Schema.Attributes).To(HaveKey("connections"))
+			Expect(resp.Schema.Attributes).To(HaveKey("tenant_id"))
+			Expect(resp.Schema.Attributes).To(HaveKey("install_id"))
+			Expect(resp.Schema.Attributes).To(HaveKey("connection_id"))
+			Expect(resp.Schema.Attributes).To(HaveKey("contexts"))
 		})
 	})
 
@@ -66,7 +67,7 @@ var _ = Describe("BrokerConnectionsForOrgDataSource", func() {
 			c := client.NewClient("https://api.snyk.io", mockAuth)
 			providerData := &common.ProviderData{Client: c}
 
-			newDS := &BrokerConnectionsForOrgDataSource{}
+			newDS := &BrokerConnectionContextsDataSource{}
 			req := datasource.ConfigureRequest{
 				ProviderData: providerData,
 			}
@@ -79,7 +80,7 @@ var _ = Describe("BrokerConnectionsForOrgDataSource", func() {
 		})
 
 		It("handles nil provider data gracefully", func() {
-			newDS := &BrokerConnectionsForOrgDataSource{}
+			newDS := &BrokerConnectionContextsDataSource{}
 			req := datasource.ConfigureRequest{
 				ProviderData: nil,
 			}
@@ -91,7 +92,7 @@ var _ = Describe("BrokerConnectionsForOrgDataSource", func() {
 		})
 
 		It("returns error for invalid provider data type", func() {
-			newDS := &BrokerConnectionsForOrgDataSource{}
+			newDS := &BrokerConnectionContextsDataSource{}
 			req := datasource.ConfigureRequest{
 				ProviderData: "invalid",
 			}
@@ -104,23 +105,37 @@ var _ = Describe("BrokerConnectionsForOrgDataSource", func() {
 	})
 
 	Describe("Client API calls", func() {
-		Context("ListBrokerConnectionsForOrg", func() {
-			It("lists all connections for an organization", func() {
+		Context("ListConnectionContexts", func() {
+			It("lists all contexts for a connection", func() {
 				mockHTTP.DoFunc = func(req *http.Request) (*http.Response, error) {
 					Expect(req.Method).To(Equal(http.MethodGet))
-					Expect(req.URL.Path).To(ContainSubstring("/orgs/"))
-					Expect(req.URL.Path).To(ContainSubstring("/brokers/connections"))
+					Expect(req.URL.Path).To(ContainSubstring("/connections/"))
+					Expect(req.URL.Path).To(ContainSubstring("/contexts"))
 					return testutil.NewMockJSONResponse(http.StatusOK, `{
 						"data": [
 							{
-								"id": "conn-1",
-								"type": "broker_connection",
+								"id": "ctx-1",
+								"type": "broker_context",
 								"attributes": {
-									"deployment_id": "deploy-abc",
-									"name": "GitHub Connection",
-									"configuration": {
-										"type": "github",
-										"required": {}
+									"context": {
+										"GITHUB_TOKEN": "${GITHUB_TOKEN}"
+									}
+								},
+								"relationships": {
+									"broker_connections": [
+										{"data": {"id": "conn-123", "type": "broker_connection"}}
+									],
+									"applied_integrations": [
+										{"data": {"id": "int-456", "org_id": "org-789", "type": "integration"}}
+									]
+								}
+							},
+							{
+								"id": "ctx-2",
+								"type": "broker_context",
+								"attributes": {
+									"context": {
+										"GITLAB_TOKEN": "${GITLAB_TOKEN}"
 									}
 								}
 							}
@@ -128,43 +143,40 @@ var _ = Describe("BrokerConnectionsForOrgDataSource", func() {
 					}`), nil
 				}
 
-				result, err := d.client.ListBrokerConnectionsForOrg(ctx, "org-123")
+				result, err := d.client.ListConnectionContexts(ctx, "tenant-123", "install-456", "conn-789")
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result).NotTo(BeNil())
-				Expect(result.Data).To(HaveLen(1))
-				Expect(result.Data[0].Attributes.Name).To(Equal("GitHub Connection"))
-				Expect(result.Data[0].Attributes.DeploymentID).To(Equal("deploy-abc"))
+				Expect(result.Data).To(HaveLen(2))
+				Expect(result.Data[0].Attributes.Context["GITHUB_TOKEN"]).To(Equal("${GITHUB_TOKEN}"))
+				Expect(result.Data[0].Relationships).NotTo(BeNil())
+				Expect(result.Data[0].Relationships.BrokerConnections).To(HaveLen(1))
 			})
 
-			It("returns an empty list with no connections", func() {
+			It("returns an empty list for connection with no contexts", func() {
 				mockHTTP.DoFunc = func(req *http.Request) (*http.Response, error) {
 					return testutil.NewMockJSONResponse(http.StatusOK, `{"data": []}`), nil
 				}
 
-				result, err := d.client.ListBrokerConnectionsForOrg(ctx, "org-no-connections")
+				result, err := d.client.ListConnectionContexts(ctx, "tenant-123", "install-456", "empty-conn")
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result).NotTo(BeNil())
 				Expect(result.Data).To(BeEmpty())
 			})
 
-			It("returns an error on unauthorized request", func() {
+			It("returns an error on failure", func() {
 				mockHTTP.DoFunc = func(req *http.Request) (*http.Response, error) {
-					return testutil.NewMockJSONResponse(http.StatusUnauthorized, `{"error": "unauthorized"}`), nil
+					return testutil.NewMockJSONResponse(http.StatusInternalServerError, `{"error": "internal error"}`), nil
 				}
 
-				result, err := d.client.ListBrokerConnectionsForOrg(ctx, "org-123")
+				result, err := d.client.ListConnectionContexts(ctx, "tenant-123", "install-456", "conn-789")
 
 				Expect(err).To(HaveOccurred())
 				Expect(result).To(BeNil())
-
-				var apiErr *client.APIError
-				Expect(errors.As(err, &apiErr)).To(BeTrue())
-				Expect(apiErr.StatusCode).To(Equal(http.StatusUnauthorized))
 			})
 
-			It("handles pagination and returns all connections", func() {
+			It("handles pagination and returns all contexts", func() {
 				callCount := 0
 				mockHTTP.DoFunc = func(req *http.Request) (*http.Response, error) {
 					Expect(req.Method).To(Equal(http.MethodGet))
@@ -173,28 +185,28 @@ var _ = Describe("BrokerConnectionsForOrgDataSource", func() {
 					if callCount == 1 {
 						return testutil.NewMockJSONResponse(http.StatusOK, `{
 							"data": [
-								{"id": "conn-1", "type": "broker_connection", "attributes": {"name": "GitHub", "configuration": {"type": "github", "required": {}}}}
+								{"id": "ctx-1", "type": "broker_context", "attributes": {"context": {"KEY1": "value1"}}}
 							],
 							"links": {
-								"next": "https://api.snyk.io/rest/orgs/org-123/brokers/connections?starting_after=conn-1"
+								"next": "https://api.snyk.io/rest/tenants/tenant-123/brokers/installs/install-456/connections/conn-789/contexts?starting_after=ctx-1"
 							}
 						}`), nil
 					}
 
 					return testutil.NewMockJSONResponse(http.StatusOK, `{
 						"data": [
-							{"id": "conn-2", "type": "broker_connection", "attributes": {"name": "GitLab", "configuration": {"type": "gitlab", "required": {}}}}
+							{"id": "ctx-2", "type": "broker_context", "attributes": {"context": {"KEY2": "value2"}}}
 						],
 						"links": {}
 					}`), nil
 				}
 
-				result, err := d.client.ListBrokerConnectionsForOrg(ctx, "org-123")
+				result, err := d.client.ListConnectionContexts(ctx, "tenant-123", "install-456", "conn-789")
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result.Data).To(HaveLen(2))
-				Expect(result.Data[0].ID).To(Equal("conn-1"))
-				Expect(result.Data[1].ID).To(Equal("conn-2"))
+				Expect(result.Data[0].ID).To(Equal("ctx-1"))
+				Expect(result.Data[1].ID).To(Equal("ctx-2"))
 				Expect(callCount).To(Equal(2))
 			})
 		})

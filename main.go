@@ -8,7 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/snyk/terraform-provider-snyk-broker/internal/provider"
+	"github.com/snyk-labs/snyk-broker-provider/internal/provider"
 )
 
 // These will be set by the goreleaser configuration
@@ -22,7 +22,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/snyk/snyk-broker",
+		Address: "registry.terraform.io/snyk-labs/snyk-broker",
 		Debug:   debug,
 	}
 

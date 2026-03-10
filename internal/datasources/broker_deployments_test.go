@@ -10,9 +10,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/snyk/terraform-provider-snyk-broker/internal/client"
-	"github.com/snyk/terraform-provider-snyk-broker/internal/common"
-	"github.com/snyk/terraform-provider-snyk-broker/internal/testutil"
+	"github.com/snyk-labs/snyk-broker-provider/internal/client"
+	"github.com/snyk-labs/snyk-broker-provider/internal/common"
+	"github.com/snyk-labs/snyk-broker-provider/internal/testutil"
 )
 
 var _ = Describe("BrokerDeploymentsDataSource", func() {

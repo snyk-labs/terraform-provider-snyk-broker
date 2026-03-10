@@ -11,8 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/snyk/terraform-provider-snyk-broker/internal/client"
-	"github.com/snyk/terraform-provider-snyk-broker/internal/common"
+	"github.com/snyk-labs/snyk-broker-provider/internal/client"
+	"github.com/snyk-labs/snyk-broker-provider/internal/common"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.

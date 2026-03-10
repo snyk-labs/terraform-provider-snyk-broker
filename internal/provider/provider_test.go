@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/snyk/terraform-provider-snyk-broker/internal/provider"
+	"github.com/snyk-labs/snyk-broker-provider/internal/provider"
 )
 
 var _ = Describe("SnykBrokerProvider", func() {

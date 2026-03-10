@@ -3,7 +3,7 @@
 package common
 
 import (
-	"github.com/snyk/terraform-provider-snyk-broker/internal/client"
+	"github.com/snyk-labs/snyk-broker-provider/internal/client"
 )
 
 // ProviderData holds the configured client for use by resources and data sources

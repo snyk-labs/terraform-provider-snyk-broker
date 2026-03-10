@@ -654,3 +654,226 @@ func (c *Client) CreateBrokerBulkMigration(ctx context.Context, tenantID, instal
 
 	return &resp, nil
 }
+
+// BrokerContext represents a broker context
+type BrokerContext struct {
+	ID            string                  `json:"id"`
+	Type          string                  `json:"type"`
+	Attributes    BrokerContextAttributes `json:"attributes"`
+	Relationships *BrokerContextRelationships `json:"relationships,omitempty"`
+}
+
+type BrokerContextAttributes struct {
+	Context map[string]string `json:"context"`
+}
+
+type BrokerContextRelationships struct {
+	BrokerConnections   []BrokerContextRelationship `json:"broker_connections,omitempty"`
+	AppliedIntegrations []BrokerContextIntegrationRelationship `json:"applied_integrations,omitempty"`
+}
+
+type BrokerContextRelationship struct {
+	Data struct {
+		ID   string `json:"id"`
+		Type string `json:"type"`
+	} `json:"data"`
+}
+
+type BrokerContextIntegrationRelationship struct {
+	Data struct {
+		ID    string `json:"id"`
+		OrgID string `json:"org_id"`
+		Type  string `json:"type"`
+	} `json:"data"`
+}
+
+// BrokerContextRequest represents a request to create/update a context
+type BrokerContextRequest struct {
+	Data struct {
+		ID         string `json:"id,omitempty"`
+		Type       string `json:"type"`
+		Attributes struct {
+			Context      map[string]string `json:"context"`
+			ConnectionID string            `json:"connection_id,omitempty"`
+		} `json:"attributes"`
+	} `json:"data"`
+}
+
+// BrokerContextResponse represents the response from context operations
+type BrokerContextResponse struct {
+	Data BrokerContext `json:"data"`
+}
+
+// BrokerContextsListResponse represents the response from listing contexts
+type BrokerContextsListResponse struct {
+	Data  []BrokerContext `json:"data"`
+	Links PaginationLinks `json:"links,omitempty"`
+}
+
+// CreateBrokerContext creates a new broker context
+func (c *Client) CreateBrokerContext(ctx context.Context, tenantID, installID, deploymentID, connectionID string, contextData map[string]string) (*BrokerContextResponse, error) {
+	path := fmt.Sprintf("/rest/tenants/%s/brokers/installs/%s/deployments/%s/contexts?version=%s", tenantID, installID, deploymentID, c.apiVersion)
+
+	req := BrokerContextRequest{}
+	req.Data.Type = "broker_context"
+	req.Data.Attributes.Context = contextData
+	req.Data.Attributes.ConnectionID = connectionID
+
+	var resp BrokerContextResponse
+	if err := c.Post(ctx, path, req, &resp); err != nil {
+		return nil, fmt.Errorf("failed to create broker context: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// GetBrokerContext retrieves a broker context by ID
+func (c *Client) GetBrokerContext(ctx context.Context, tenantID, installID, contextID string) (*BrokerContextResponse, error) {
+	path := fmt.Sprintf("/rest/tenants/%s/brokers/installs/%s/contexts/%s?version=%s", tenantID, installID, contextID, c.apiVersion)
+
+	var resp BrokerContextResponse
+	if err := c.Get(ctx, path, &resp); err != nil {
+		return nil, fmt.Errorf("failed to get broker context: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// UpdateBrokerContext updates a broker context
+func (c *Client) UpdateBrokerContext(ctx context.Context, tenantID, installID, contextID string, contextData map[string]string) (*BrokerContextResponse, error) {
+	path := fmt.Sprintf("/rest/tenants/%s/brokers/installs/%s/contexts/%s?version=%s", tenantID, installID, contextID, c.apiVersion)
+
+	req := BrokerContextRequest{}
+	req.Data.ID = contextID
+	req.Data.Type = "broker_context"
+	req.Data.Attributes.Context = contextData
+
+	var resp BrokerContextResponse
+	if err := c.Patch(ctx, path, req, &resp); err != nil {
+		return nil, fmt.Errorf("failed to update broker context: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// DeleteBrokerContext deletes a broker context
+func (c *Client) DeleteBrokerContext(ctx context.Context, tenantID, installID, contextID string) error {
+	path := fmt.Sprintf("/rest/tenants/%s/brokers/installs/%s/contexts/%s?version=%s", tenantID, installID, contextID, c.apiVersion)
+
+	if err := c.Delete(ctx, path); err != nil {
+		return fmt.Errorf("failed to delete broker context: %w", err)
+	}
+
+	return nil
+}
+
+// ListConnectionContexts lists all broker contexts for a connection, handling pagination
+func (c *Client) ListConnectionContexts(ctx context.Context, tenantID, installID, connectionID string) (*BrokerContextsListResponse, error) {
+	path := fmt.Sprintf("/rest/tenants/%s/brokers/installs/%s/connections/%s/contexts?version=%s", tenantID, installID, connectionID, c.apiVersion)
+
+	var allContexts []BrokerContext
+
+	for path != "" {
+		var resp BrokerContextsListResponse
+		if err := c.Get(ctx, path, &resp); err != nil {
+			return nil, fmt.Errorf("failed to list broker contexts for connection: %w", err)
+		}
+
+		allContexts = append(allContexts, resp.Data...)
+
+		if resp.Links.Next != "" {
+			path = resp.Links.Next
+			if len(path) > len(c.baseURL) && path[:len(c.baseURL)] == c.baseURL {
+				path = path[len(c.baseURL):]
+			}
+		} else {
+			path = ""
+		}
+	}
+
+	return &BrokerContextsListResponse{Data: allContexts}, nil
+}
+
+// ListDeploymentContexts lists all broker contexts for a deployment, handling pagination
+func (c *Client) ListDeploymentContexts(ctx context.Context, tenantID, installID, deploymentID string) (*BrokerContextsListResponse, error) {
+	path := fmt.Sprintf("/rest/tenants/%s/brokers/installs/%s/deployments/%s/contexts?version=%s", tenantID, installID, deploymentID, c.apiVersion)
+
+	var allContexts []BrokerContext
+
+	for path != "" {
+		var resp BrokerContextsListResponse
+		if err := c.Get(ctx, path, &resp); err != nil {
+			return nil, fmt.Errorf("failed to list broker contexts for deployment: %w", err)
+		}
+
+		allContexts = append(allContexts, resp.Data...)
+
+		if resp.Links.Next != "" {
+			path = resp.Links.Next
+			if len(path) > len(c.baseURL) && path[:len(c.baseURL)] == c.baseURL {
+				path = path[len(c.baseURL):]
+			}
+		} else {
+			path = ""
+		}
+	}
+
+	return &BrokerContextsListResponse{Data: allContexts}, nil
+}
+
+// BrokerContextIntegrationRequest represents a request to associate an integration with a context
+type BrokerContextIntegrationRequest struct {
+	Data struct {
+		ID         string `json:"id"`
+		Type       string `json:"type"`
+		Attributes struct {
+			OrgID string `json:"org_id"`
+		} `json:"attributes"`
+	} `json:"data"`
+}
+
+// BrokerContextIntegrationResponse represents the response from context integration operations
+type BrokerContextIntegrationResponse struct {
+	Data struct {
+		ID            string `json:"id"`
+		Type          string `json:"type"`
+		Relationships struct {
+			IntegrationsRelationships []struct {
+				Data struct {
+					ID              string `json:"id"`
+					OrgID           string `json:"org_id"`
+					IntegrationType string `json:"integration_type"`
+					Type            string `json:"type"`
+				} `json:"data"`
+			} `json:"integrations_relationships"`
+		} `json:"relationships"`
+	} `json:"data"`
+}
+
+// UpdateBrokerContextIntegration associates an integration with a broker context
+func (c *Client) UpdateBrokerContextIntegration(ctx context.Context, tenantID, installID, contextID, integrationID, orgID string) (*BrokerContextIntegrationResponse, error) {
+	path := fmt.Sprintf("/rest/tenants/%s/brokers/installs/%s/contexts/%s/integration?version=%s", tenantID, installID, contextID, c.apiVersion)
+
+	req := BrokerContextIntegrationRequest{}
+	req.Data.ID = integrationID
+	req.Data.Type = "broker_integration"
+	req.Data.Attributes.OrgID = orgID
+
+	var resp BrokerContextIntegrationResponse
+	if err := c.Patch(ctx, path, req, &resp); err != nil {
+		return nil, fmt.Errorf("failed to update broker context integration: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// DeleteBrokerContextIntegration removes an integration association from a broker context
+func (c *Client) DeleteBrokerContextIntegration(ctx context.Context, tenantID, installID, contextID, integrationID string) error {
+	path := fmt.Sprintf("/rest/tenants/%s/brokers/installs/%s/contexts/%s/integrations/%s?version=%s", tenantID, installID, contextID, integrationID, c.apiVersion)
+
+	if err := c.Delete(ctx, path); err != nil {
+		return fmt.Errorf("failed to delete broker context integration: %w", err)
+	}
+
+	return nil
+}

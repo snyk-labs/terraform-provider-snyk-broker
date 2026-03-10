@@ -3,8 +3,8 @@
 package testutil
 
 import (
-	"github.com/snyk/terraform-provider-snyk-broker/internal/client"
-	"github.com/snyk/terraform-provider-snyk-broker/internal/common"
+	"github.com/snyk-labs/snyk-broker-provider/internal/client"
+	"github.com/snyk-labs/snyk-broker-provider/internal/common"
 )
 
 // CreateMockProviderData creates a mock ProviderData with a configured client

@@ -1,4 +1,4 @@
-module github.com/snyk/terraform-provider-snyk-broker
+module github.com/snyk-labs/snyk-broker-provider
 
 go 1.24.0
 

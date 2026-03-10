@@ -2,6 +2,8 @@
 
 A Terraform provider for managing [Snyk Universal Broker](https://docs.snyk.io/implementation-and-setup/enterprise-setup/snyk-broker/universal-broker) resources.
 
+This provider experimental and should only be used in coordination with Snyk solutions architecture.
+
 ## Features
 
 - **App Installation**: Install the Snyk Broker App to organizations
@@ -19,13 +21,13 @@ A Terraform provider for managing [Snyk Universal Broker](https://docs.snyk.io/i
 
 ## Installation
 
-### From Terraform Registry (Coming Soon)
+### From Terraform Registry
 
 ```hcl
 terraform {
   required_providers {
-    snyk = {
-      source  = "snyk/snyk-broker"
+    snyk-broker = {
+      source  = "snyk-labs/snyk-broker"
       version = "~> 0.1"
     }
   }
@@ -36,11 +38,11 @@ terraform {
 
 ```bash
 # Clone the repository
-git clone https://github.com/snyk/terraform-provider-snyk-broker.git
-cd terraform-provider-snyk-broker
+git clone https://github.com/snyk-labs/snyk-broker-provider.git
+cd snyk-broker-provider
 
 # Build and install locally
-make install
+go build -o terraform-provider-snyk-broker
 ```
 
 ## Provider Configuration

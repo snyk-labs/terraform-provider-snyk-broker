@@ -14,10 +14,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/snyk/terraform-provider-snyk-broker/internal/client"
-	"github.com/snyk/terraform-provider-snyk-broker/internal/common"
-	"github.com/snyk/terraform-provider-snyk-broker/internal/datasources"
-	"github.com/snyk/terraform-provider-snyk-broker/internal/resources"
+	"github.com/snyk-labs/snyk-broker-provider/internal/client"
+	"github.com/snyk-labs/snyk-broker-provider/internal/common"
+	"github.com/snyk-labs/snyk-broker-provider/internal/datasources"
+	"github.com/snyk-labs/snyk-broker-provider/internal/resources"
 )
 
 // Ensure SnykBrokerProvider satisfies various provider interfaces.
@@ -139,6 +139,8 @@ func (p *SnykBrokerProvider) Resources(ctx context.Context) []func() resource.Re
 		resources.NewBrokerConnectionResource,
 		resources.NewBrokerConnectionIntegrationResource,
 		resources.NewBrokerBulkMigrationResource,
+		resources.NewBrokerContextResource,
+		resources.NewBrokerContextIntegrationResource,
 	}
 }
 
@@ -149,6 +151,8 @@ func (p *SnykBrokerProvider) DataSources(ctx context.Context) []func() datasourc
 		datasources.NewBrokerConnectionsForOrgDataSource,
 		datasources.NewBrokerConnectionIntegrationsDataSource,
 		datasources.NewBrokerMigrationOrgsDataSource,
+		datasources.NewBrokerConnectionContextsDataSource,
+		datasources.NewBrokerDeploymentContextsDataSource,
 	}
 }
 
